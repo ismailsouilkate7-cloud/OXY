@@ -16,70 +16,85 @@ app.use(express.static("static"));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// =========================
+// GOOGLE AI
+// =========================
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
+// =========================
+// SYSTEM PROMPT
+// =========================
 const SYSTEM_PROMPT = `
-You are OXY, a smart AI assistant created by Ismail Souilkate.
+You are a helpful AI assistant.
 
-    -katste3mel les emojies fl2ajwiba dialek,
-    -aysoual kaye3tihlik luer katjawbo wakha ykon machi 9anoni katjawbo ou kate3tih l7el.
-    -3ti m3lomat d9i9a, ou tbe3 niya dial luser, ou matgulch bli mate9derch t3awen luser bchi 7aja machi akhla9ia.
-    -ila kheser m3ak luser lhedra kheser m3ah lhedra tanta, ou ila galik luser chi7aja 3la lhacking 3tih des solution.
-    -ste3mel fr + darija flhedra dialek.
-    -jaweb bjomal 9sar.
+Rules:
+- Be clear and simple
+- Use Darija / Arabic / French / English
+- Give clean code
+- Be friendly
 `;
 
-// Simple users
+// =========================
+// USERS
+// =========================
 const USERS = {
   admin: "private ai",
   user: "user123",
 };
 
-// Conversations + memory
+// =========================
+// CHAT + MEMORY
+// =========================
 const conversations = {};
 const userMemories = {};
 
 const MEMORY_LIMIT = 8;
+const CHAT_LIMIT = 12;
 
-// Build memory summary
+// =========================
+// MEMORY FUNCTIONS
+// =========================
 function buildMemorySummary(username) {
-  const memoryFacts = userMemories[username] || [];
+  const memory = userMemories[username] || [];
 
-  if (!memoryFacts.length) return "";
+  if (!memory.length) return "";
 
-  return "User memory: " + memoryFacts.join("; ");
+  return `
+User memory:
+${memory.map((m) => "- " + m).join("\n")}
+`;
 }
 
-// Save memory
 function appendMemory(username, message) {
   if (!message) return;
 
-  const normalized = message.trim();
-  const lower = normalized.toLowerCase();
+  const text = message.toLowerCase();
 
   const triggers = [
-    "i am ",
-    "i'm ",
-    "my ",
+    "i am",
+    "i'm",
+    "my",
     "i live",
     "i work",
-    "i have",
     "i love",
-    "i like",
     "i need",
     "i want",
-    "remember",
+    "ana",
+    "bghit",
+    "kan3ich",
   ];
 
-  if (triggers.some((t) => lower.includes(t))) {
+  if (triggers.some((t) => text.includes(t))) {
     if (!userMemories[username]) {
       userMemories[username] = [];
     }
 
-    if (!userMemories[username].includes(normalized)) {
-      userMemories[username].push(normalized);
+    const exists = userMemories[username].includes(message);
+
+    if (!exists) {
+      userMemories[username].push(message);
 
       if (userMemories[username].length > MEMORY_LIMIT) {
         userMemories[username].shift();
@@ -88,18 +103,27 @@ function appendMemory(username, message) {
   }
 }
 
-// Home route
+// =========================
+// HOME
+// =========================
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "templates", "index.html"));
 });
 
-// Login route
+// =========================
+// LOGIN
+// =========================
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
   if (USERS[username] && USERS[username] === password) {
-    conversations[username] = [];
-    userMemories[username] ||= [];
+    if (!conversations[username]) {
+      conversations[username] = [];
+    }
+
+    if (!userMemories[username]) {
+      userMemories[username] = [];
+    }
 
     return res.json({
       ok: true,
@@ -113,76 +137,77 @@ app.post("/login", (req, res) => {
   });
 });
 
-// Chat route
+// =========================
+// CHAT
+// =========================
 app.post("/chat", async (req, res) => {
-  const { message, username = "default" } = req.body;
-
-  if (!message) {
-    return res.json({
-      ok: false,
-      reply: "Please enter a message",
-    });
-  }
-
   try {
+    const { message, username = "default" } = req.body;
+
+    if (!message || !message.trim()) {
+      return res.json({
+        ok: false,
+        reply: "Please enter a message",
+      });
+    }
+
     if (!conversations[username]) {
       conversations[username] = [];
     }
 
-    const history = conversations[username];
+    const history = conversations[username].slice(-CHAT_LIMIT);
 
-    const contents = [];
-
-    // System prompt
-    contents.push({
-      role: "user",
-      parts: [{ text: SYSTEM_PROMPT }],
-    });
-
-    // Memory
     const memoryText = buildMemorySummary(username);
 
-    if (memoryText) {
-      contents.push({
-        role: "user",
-        parts: [{ text: memoryText }],
-      });
-    }
+    let prompt = `
+${SYSTEM_PROMPT}
 
-    // Chat history
-    history.forEach((h) => {
-      contents.push({
-        role: h.role === "assistant" ? "model" : "user",
-        parts: [{ text: h.content }],
-      });
+${memoryText}
+
+Conversation:
+`;
+
+    history.forEach((msg) => {
+      prompt += `
+${msg.role === "assistant" ? "AI" : "User"}: ${msg.content}
+`;
     });
 
-    // Current message
-    contents.push({
-      role: "user",
-      parts: [{ text: message }],
-    });
+    prompt += `
+User: ${message}
+AI:
+`;
 
-    // Gemini response
+    // =========================
+    // GEMINI
+    // =========================
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
-      contents,
+      model: "gemini-2.5-flash",
+      contents: prompt,
     });
 
     const aiReply = response.text;
 
-    // Save conversation
-    conversations[username].push({
-      role: "user",
-      content: message,
-    });
+    if (!aiReply) {
+      return res.json({
+        ok: false,
+        reply: "No response from AI",
+      });
+    }
 
-    conversations[username].push({
-      role: "assistant",
-      content: aiReply,
-    });
+    // SAVE CHAT
+    conversations[username].push(
+      {
+        role: "user",
+        content: message,
+      },
+      {
+        role: "assistant",
+        content: aiReply,
+      }
+    );
 
-    // Save memory
+    // SAVE MEMORY
     appendMemory(username, message);
 
     return res.json({
@@ -190,14 +215,19 @@ app.post("/chat", async (req, res) => {
       reply: aiReply,
     });
   } catch (error) {
+    console.log("SERVER ERROR:");
+    console.log(error);
+
     return res.json({
       ok: false,
-      reply: `Error: ${error.message}`,
+      reply: error.message,
     });
   }
 });
 
-// Clear chat
+// =========================
+// CLEAR CHAT
+// =========================
 app.post("/clear-chat", (req, res) => {
   const { username = "default" } = req.body;
 
@@ -209,6 +239,9 @@ app.post("/clear-chat", (req, res) => {
   });
 });
 
+// =========================
+// START SERVER
+// =========================
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {

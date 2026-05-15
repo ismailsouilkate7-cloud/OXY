@@ -4,79 +4,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OXY Chat</title>
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- LOGIN SCREEN -->
-    <div id="lock-screen" class="screen login-screen">
-        <div class="login-container">
-            <div class="login-box">
-                <h1>🤖 OXY</h1>
-                <p class="subtitle">Powered by Ismail Souilkate</p>
-                
-                <input type="text" id="username" placeholder="Username" class="input-field">
-                <input type="password" id="password" placeholder="Password" class="input-field">
-                
-                <div id="error" class="error-message"></div>
-                
-                <button onclick="login()" class="btn btn-login">Login</button>
-                
-                
+
+<!-- LOGIN -->
+<div id="lock-screen" class="screen login-screen">
+    <div class="login-box">
+        <h1>🤖 OXY</h1>
+        <p class="subtitle">Powered by Ismail Souilkate</p>
+
+        <input type="text" id="username" placeholder="Username" class="input-field">
+        <input type="password" id="password" placeholder="Password" class="input-field">
+
+        <div id="error" class="error-message"></div>
+
+        <button onclick="login()" class="btn btn-login">Login</button>
+    </div>
+</div>
+
+<!-- CHAT -->
+<div id="chat" class="screen chat-screen" style="display:none;">
+
+    <div class="app-shell">
+
+        <!-- MAIN -->
+        <main class="chat-main" id="chatMain">
+
+            <div class="chat-header">
+                <div>
+                    <h1>🤖 OXY</h1>
+                    <p id="chat-title">New Chat</p>
+                </div>
+
+                <div class="header-info">
+                    <span id="chat-username">User</span>
+                    <button onclick="logout()" class="btn btn-logout">Logout</button>
+                </div>
             </div>
-        </div>
+
+            <div id="chat-box" class="chat-box"></div>
+
+            <div class="chat-footer">
+                <div class="input-area">
+                    <input id="msg" class="msg-input" placeholder="Type message..."
+                           onkeypress="handleKeyPress(event)">
+                    <button onclick="send()" class="btn btn-send">Send</button>
+                </div>
+
+                <button onclick="clearChat()" class="btn btn-clear">Clear Chat</button>
+            </div>
+
+        </main>
+
     </div>
+</div>
 
-    <!-- CHAT SCREEN -->
-    <div id="chat" class="screen chat-screen" style="display: none;">
-        <div class="app-shell">
-            <aside class="sidebar">
-                <div class="sidebar-brand">
-                    <h2>OXY</h2>
-                    <p>OXY by Ismail Souilkate</p>
-                </div>
-                <div class="sidebar-section">
-                    <h3>Quick Actions</h3>
-                    <button class="sidebar-btn" onclick="newChat()">New Chat</button>
-                </div>
-                <div class="sidebar-section">
-                    <h3>Recent Chats</h3>
-                    <ul class="sidebar-list">
-                        <li>Project ideas</li>
-                        <li>AI prompts</li>
-                        <li>Design tips</li>
-                    </ul>
-                </div>
-            </aside>
-
-            <main class="chat-main">
-                <div class="chat-header">
-                    <div>
-                        <h1>🤖 OXY</h1>
-                        <p class="chat-subtitle" id="chat-title">New Chat</p>
-                    </div>
-                    <div class="header-info">
-                        <span id="chat-username">User</span>
-                        <button onclick="logout()" class="btn btn-logout">Logout</button>
-                    </div>
-                </div>
-
-                <div id="chat-box" class="chat-box">
-                    <div class="msg ai">
-                        👋 Hello! I'm powered by Ismail Souilkate. How can I help you today?
-                    </div>
-                </div>
-
-                <div class="chat-footer">
-                    <div class="input-area">
-                        <input type="text" id="msg" placeholder="Type your message..." class="msg-input" onkeypress="handleKeyPress(event)">
-                        <button onclick="send()" class="btn btn-send">Send</button>
-                    </div>
-                    <button onclick="clearChat()" class="btn btn-clear">Clear Chat</button>
-                </div>
-            </main>
-        </div>
-    </div>
-
-    <script src="/script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
